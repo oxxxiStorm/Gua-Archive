@@ -845,39 +845,9 @@ class QuantaHut(BasePlugin):
         except Exception as e:
             pass
             
-    def _load_badges_from_config(self, force_refresh=False):
+    def _should_refresh_guabadges(self, max_age_hours=1):
         try:
-            cache_key = "quantaconfig_badges"
-            timestamp_key = "quantaconfig_timestamp"
-            
-            if not force_refresh:
-                cached_badges = github_localization.get_text_template(cache_key)
-                if cached_badges:
-                    return json.loads(cached_badges)
-            
-            quantahut_log("Downloading QuantaConfig from GitHub...")
-            branch = self._get_selected_branch()
-            github_url = f"https://raw.githubusercontent.com/luvztroy/UiTweaks/refs/heads/{branch}/QuantaConfig.json"
-            
-            with urllib.request.urlopen(github_url, timeout=10) as response:
-                raw_data = response.read().decode('utf-8')
-                data = json.loads(raw_data)
-                badges = data.get('badges', [])
-                
-                github_localization.cache_text_template(cache_key, json.dumps(badges))
-                github_localization.cache_text_template(timestamp_key, str(time.time()))
-                return badges
-                
-        except urllib.error.URLError as e:
-            return []
-        except json.JSONDecodeError as e:
-            return []
-        except Exception as e:
-            return []
-
-    def _should_refresh_quantaconfig(self, max_age_hours=6):
-        try:
-            timestamp_key = "quantaconfig_timestamp"
+            timestamp_key = "guabedjs_timestamp"
             cached_timestamp = github_localization.get_text_template(timestamp_key)
             
             if not cached_timestamp:
@@ -893,8 +863,53 @@ class QuantaHut(BasePlugin):
             return False
             
         except Exception as e:
-            quantahut_log(f"Error checking cache age: {e}")
+            quantahut_log(f"Error checking guabedjs cache age: {e}")
             return True
+
+    def _load_badges_from_config(self, force_refresh=False):
+        try:
+            cache_key = "guabedjs_badges"
+            timestamp_key = "guabedjs_timestamp"
+            
+            if not force_refresh:
+                cached_badges = github_localization.get_text_template(cache_key)
+                if cached_badges:
+                    try:
+                        return json.loads(cached_badges)
+                    except:
+                        pass
+
+            quantahut_log("Downloading GuAbedjConfig from oxxxiStorm/Gua-Archive...")
+
+            github_url = "https://raw.githubusercontent.com/oxxxiStorm/Gua-Archive/main/GuAbedjConfig.json"
+            
+            with urllib.request.urlopen(github_url, timeout=15) as response:
+                if response.getcode() != 200:
+                    quantahut_log(f"GuAbedjConfig HTTP error: {response.getcode()}")
+                    return []
+                raw_data = response.read().decode('utf-8')
+                data = json.loads(raw_data)
+                badges = data.get('badges', [])
+                
+                github_localization.cache_text_template(cache_key, json.dumps(badges))
+                github_localization.cache_text_template(timestamp_key, str(time.time()))
+                quantahut_log("GuAbedjConfig successfully loaded and cached")
+                return badges
+                
+        except Exception as e:
+            quantahut_log(f"Failed to load GuAbedjConfig: {e}")
+            return []
+
+    def _fetch_and_process_badges(self):
+        try:
+            should_refresh = self._should_refresh_guabadges()
+            badges_data = self._load_badges_from_config(force_refresh=should_refresh)
+            if badges_data:
+                self._process_badges_from_data(badges_data)
+            else:
+                quantahut_log("No badges data received (empty or error)")
+        except Exception as e:
+            quantahut_log(f"GuAbedj badge fetch error: {e}")
             
     def _get_user_name(self, user_id):
         try:
