@@ -4,7 +4,7 @@
       "id": "user1",
       "user_id": 1971907287,
       "emoji_id": 5336791061949852403,
-      "text_template": "**{user_name}** Founder of GuA"
+      "text_template": "**{user_name}** founder of **GuA**"
     }
   ]
 }
